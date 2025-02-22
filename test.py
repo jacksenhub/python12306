@@ -4,133 +4,133 @@
 """
 @author: liuyw
 """
-from splinter.browser import Browser
+from splinter import Browser
 from time import sleep
 import traceback
-import time, sys
+import sys
 
-
-class huoche(object):
-    """docstring for huoche"""
-    driver_name=''
-    executable_path=''
-    #用户名，密码
-    username="username"
-    passwd ="password"
-    # cookies值得自己去找, 下面两个分别是上海, 太原南
-    starts = "%u5317%u4EAC%2CBJP"
-    ends = "%u4E34%u6C82%2CLVK"
-    # 时间格式2018-01-19
-    dtime = "2018-02-12"
-    # 车次，选择第几趟，0则从上之下依次点击
-    order = 0
-    ###乘客名
-    users = ["XXX"]
-    ##席位
-    xb = "硬座"
-    pz="成人票"
-
-    """网址"""
-    ticket_url = "https://kyfw.12306.cn/otn/leftTicket/init"
-    login_url = "https://kyfw.12306.cn/otn/login/init"
-    initmy_url = "https://kyfw.12306.cn/otn/index/initMy12306"
-    buy="https://kyfw.12306.cn/otn/confirmPassenger/initDc"
-    login_url='https://kyfw.12306.cn/otn/login/init'
+class Huoche:
     def __init__(self):
-    	self.driver_name='chrome'
-
-
+        # 浏览器驱动名称
+        self.driver_name = 'chrome'
+        # 用户名和密码，需要替换为真实信息
+        self.username = "username"
+        self.passwd = "password"
+        # cookies值，这里分别是北京, 临汾，需要根据实际情况修改
+        self.starts = "%u5317%u4EAC%2CBJP"
+        self.ends = "%u4E34%u6C82%2CLVK"
+        # 出发日期，格式为2018-01-19
+        self.dtime = "2018-02-12"
+        # 车次选择，0表示从上到下依次点击
+        self.order = 0
+        # 乘客姓名列表
+        self.users = ["XXX"]
+        # 席位类型
+        self.xb = "硬座"
+        # 票种
+        self.pz = "成人票"
+        # 12306相关网址
+        self.ticket_url = "https://kyfw.12306.cn/otn/leftTicket/init"
+        self.login_url = "https://kyfw.12306.cn/otn/login/init"
+        self.initmy_url = "https://kyfw.12306.cn/otn/index/initMy12306"
+        self.buy_url = "https://kyfw.12306.cn/otn/confirmPassenger/initDc"
 
     def login(self):
-    	self.driver.visit(self.login_url)
-    	self.driver.fill("loginUserDTO.user_name", self.username)
-    	# sleep(1)
-    	self.driver.fill("userDTO.password", self.passwd)
-    	print ("等待验证码，自行输入...")
-    	while True:
-    		if self.driver.url != self.initmy_url:
-    			sleep(1)
-    		else:
-    			break
+        try:
+            # 打开登录页面
+            self.driver.visit(self.login_url)
+            # 填充用户名和密码
+            self.driver.fill("loginUserDTO.user_name", self.username)
+            self.driver.fill("userDTO.password", self.passwd)
+            print("等待验证码，自行输入...")
+            # 等待用户输入验证码并登录成功
+            while self.driver.url != self.initmy_url:
+                sleep(1)
+        except Exception as e:
+            print(f"登录时出现错误: {e}")
+            traceback.print_exc()
 
     def start(self):
-    	self.driver=Browser(driver_name=self.driver_name)
-    	self.driver.driver.set_window_size(1400, 1000)
-    	self.login()
-    	# sleep(1)
-    	self.driver.visit(self.ticket_url)
-    	try:
-    		print ("购票页面开始...")
-    		# sleep(1)
-    		# 加载查询信息
-    		self.driver.cookies.add({"_jc_save_fromStation": self.starts})
-    		self.driver.cookies.add({"_jc_save_toStation": self.ends})
-    		self.driver.cookies.add({"_jc_save_fromDate": self.dtime})
+        try:
+            # 初始化浏览器
+            self.driver = Browser(self.driver_name)
+            self.driver.driver.set_window_size(1400, 1000)
+            # 执行登录操作
+            self.login()
+            # 打开车票查询页面
+            self.driver.visit(self.ticket_url)
+            print("购票页面开始...")
+            # 添加查询信息的cookies
+            self.driver.cookies.add({"_jc_save_fromStation": self.starts})
+            self.driver.cookies.add({"_jc_save_toStation": self.ends})
+            self.driver.cookies.add({"_jc_save_fromDate": self.dtime})
+            # 刷新页面使cookies生效
+            self.driver.reload()
 
-    		self.driver.reload()
+            count = 0
+            if self.order != 0:
+                while self.driver.url == self.ticket_url:
+                    # 点击查询按钮
+                    self.driver.find_by_text("查询").click()
+                    count += 1
+                    print(f"循环点击查询... 第 {count} 次")
+                    try:
+                        # 点击指定车次的预订按钮
+                        self.driver.find_by_text("预订")[self.order - 1].click()
+                        break
+                    except IndexError:
+                        print("指定车次的预订按钮未找到，继续查询")
+                    except Exception as e:
+                        print(f"查询时出现错误: {e}")
+            else:
+                while self.driver.url == self.ticket_url:
+                    # 点击查询按钮
+                    self.driver.find_by_text("查询").click()
+                    count += 1
+                    print(f"循环点击查询... 第 {count} 次")
+                    try:
+                        # 依次点击所有预订按钮
+                        for i in self.driver.find_by_text("预订"):
+                            i.click()
+                            sleep(1)
+                            if self.driver.url != self.ticket_url:
+                                break
+                    except Exception as e:
+                        print(f"查询时出现错误: {e}")
 
-    		count=0
-    		if self.order!=0:
-    			while self.driver.url==self.ticket_url:
-    				self.driver.find_by_text("查询").click()
-    				count += 1
-    				print("循环点击查询... 第 %s 次" % count)
-    				# sleep(1)
-    				try:
-    					self.driver.find_by_text("预订")[self.order - 1].click()
-    				except Exception as e:
-    					print(e)
-    					print("还没开始预订")
-    					continue
-    		else:
-    			while self.driver.url == self.ticket_url:
-    				self.driver.find_by_text("查询").click()
-    				count += 1
-    				print("循环点击查询... 第 %s 次" % count)
-    				# sleep(0.8)
-    				try:
-    					for i in self.driver.find_by_text("预订"):
-    						i.click()
-    						sleep(1)
-    				except Exception as e:
-    					print(e)
-    					print("还没开始预订 %s" % count)
-    					continue
-    		print("开始预订...")
-    		# sleep(3)
-    		# self.driver.reload()
-    		sleep(1)
-    		print('开始选择用户...')
-    		for user in self.users:
-    			self.driver.find_by_text(user).last.click()
+            print("开始预订...")
+            sleep(1)
+            print('开始选择用户...')
+            for user in self.users:
+                try:
+                    # 选择乘客
+                    self.driver.find_by_text(user).last.click()
+                except Exception as e:
+                    print(f"选择乘客 {user} 时出现错误: {e}")
 
-    		print("提交订单...")
-    		sleep(1)
-    		# self.driver.find_by_text(self.pz).click()
-    		# self.driver.find_by_id('').select(self.pz)
-    		# # sleep(1)
-    		# self.driver.find_by_text(self.xb).click()
-    		# sleep(1)
-    		self.driver.find_by_id('submitOrder_id').click()
-    		# print u"开始选座..."
-    		# self.driver.find_by_id('1D').last.click()
-    		# self.driver.find_by_id('1F').last.click()
+            print("提交订单...")
+            sleep(1)
+            try:
+                # 提交订单
+                self.driver.find_by_id('submitOrder_id').click()
+            except Exception as e:
+                print(f"提交订单时出现错误: {e}")
 
-    		sleep(1.5)
-    		print("确认选座...")
-    		self.driver.find_by_id('qr_submit_id').click()
-
-
-
-
-    	except Exception as e:
-    		print(e)
-
-
-
-
-
+            sleep(1.5)
+            print("确认选座...")
+            try:
+                # 确认选座
+                self.driver.find_by_id('qr_submit_id').click()
+            except Exception as e:
+                print(f"确认选座时出现错误: {e}")
+        except Exception as e:
+            print(f"购票过程中出现错误: {e}")
+            traceback.print_exc()
+        finally:
+            # 关闭浏览器
+            self.driver.quit()
 
 if __name__ == '__main__':
-	huoche=huoche()
-	huoche.start()
+    # 创建购票对象并开始购票流程
+    train_ticket = Huoche()
+    train_ticket.start()
