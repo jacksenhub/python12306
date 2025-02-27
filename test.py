@@ -1,9 +1,4 @@
-#!/usr/bin/python
-# -*- coding: UTF-8 -*-
-
-"""
-@author: liuyw
-"""
+import configparser
 from splinter import Browser
 from time import sleep
 import traceback
@@ -11,24 +6,25 @@ import sys
 
 class Huoche:
     def __init__(self):
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+
         # 浏览器驱动名称
         self.driver_name = 'chrome'
-        # 用户名和密码，需要替换为真实信息
-        self.username = "username"
-        self.passwd = "password"
-        # cookies值，这里分别是北京, 临汾，需要根据实际情况修改
-        self.starts = "%u5317%u4EAC%2CBJP"
-        self.ends = "%u4E34%u6C82%2CLVK"
-        # 出发日期，格式为2018-01-19
-        self.dtime = "2018-02-12"
-        # 车次选择，0表示从上到下依次点击
-        self.order = 0
+        # 用户名和密码
+        self.username = config.get('login', 'username')
+        self.passwd = config.get('login', 'password')
+        # 出发地、目的地和出发日期
+        self.starts = config.get('travel','starts')
+        self.ends = config.get('travel', 'ends')
+        self.dtime = config.get('travel', 'dtime')
+        # 车次选择
+        self.order = int(config.get('travel', 'order'))
         # 乘客姓名列表
-        self.users = ["XXX"]
-        # 席位类型
-        self.xb = "硬座"
-        # 票种
-        self.pz = "成人票"
+        self.users = config.get('travel', 'users').split(',')
+        # 席位类型和票种
+        self.xb = config.get('travel', 'xb')
+        self.pz = config.get('travel', 'pz')
         # 12306相关网址
         self.ticket_url = "https://kyfw.12306.cn/otn/leftTicket/init"
         self.login_url = "https://kyfw.12306.cn/otn/login/init"
@@ -44,7 +40,7 @@ class Huoche:
             self.driver.fill("userDTO.password", self.passwd)
             print("等待验证码，自行输入...")
             # 等待用户输入验证码并登录成功
-            while self.driver.url != self.initmy_url:
+            while self.driver.url!= self.initmy_url:
                 sleep(1)
         except Exception as e:
             print(f"登录时出现错误: {e}")
@@ -68,7 +64,7 @@ class Huoche:
             self.driver.reload()
 
             count = 0
-            if self.order != 0:
+            if self.order!= 0:
                 while self.driver.url == self.ticket_url:
                     # 点击查询按钮
                     self.driver.find_by_text("查询").click()
@@ -93,7 +89,7 @@ class Huoche:
                         for i in self.driver.find_by_text("预订"):
                             i.click()
                             sleep(1)
-                            if self.driver.url != self.ticket_url:
+                            if self.driver.url!= self.ticket_url:
                                 break
                     except Exception as e:
                         print(f"查询时出现错误: {e}")
